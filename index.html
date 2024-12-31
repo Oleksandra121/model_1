@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUN397 Image Classifier</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #image-preview {
+            max-width: 300px;
+            max-height: 300px;
+            margin: 20px auto;
+            border: 2px solid #ddd;
+        }
+        #prediction {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SUN397 Image Classifier</h1>
+    <p>Upload an image to classify it.</p>
+    <input type="file" id="file-input" accept="image/*">
+    <canvas id="image-preview" style="display:none;"></canvas>
+    <p id="prediction">Prediction: None</p>
+
+    <script>
+        let model;
+
+        // Load the model
+        const loadModel = async () => {
+            model = await tf.loadLayersModel('model.json');
+            console.log('Model loaded.');
+        };
+
+        // Process uploaded image
+        const processImage = (file) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.getElementById('image-preview');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 128;
+                canvas.height = 128;
+                ctx.drawImage(img, 0, 0, 128, 128);
+                classifyImage(canvas);
+            };
+            img.src = URL.createObjectURL(file);
+        };
+
+        // Classify image
+        const classifyImage = async (canvas) => {
+            const imageTensor = tf.browser.fromPixels(canvas)
+                .resizeBilinear([128, 128])
+                .expandDims(0)
+                .div(255.0);
+
+            const prediction = model.predict(imageTensor);
+            const classIndex = (await prediction.argMax(-1).data())[0];
+            document.getElementById('prediction').innerText = `Prediction: ${classIndex}`;
+        };
+
+        // Event listener for file input
+        document.getElementById('file-input').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                processImage(file);
+            }
+        });
+
+        // Initialize
+        loadModel();
+    </script>
+</body>
+</html>
